@@ -1,0 +1,263 @@
+// 05 make amt change with time between changes
+// 06 change to object
+
+int centreX, centreY;
+color LIGHT_GREEN = color(113, 195, 140);
+
+int petals = 11;
+float petalsPerCircle = 11;
+
+float angleBetweenPetals = TWO_PI / petalsPerCircle; // radians
+
+// float petalAngle = TWO_PI / PETALS;
+int petalInnerRadius = 20;
+int petalOuterRadius = 120;
+float latPetalMid1 = 0.4; // angle from midline towards 1st midpoint  - 1 being touching, >1 overlapping
+float latPetalMid2 = 0.7; // 2nd midpoint
+float radPetalMid1 = 0.3; // distance along petal (ratio) - not so useful
+float radPetalMid2 = 0.7;
+float spiral = 1.0; // reduction in distance ext radius each petal
+float startAngle = 0; // in radians
+int petalChange = 1;
+color from = color(255, 100, 100);
+color to = color(0, 255, 255);
+color currentColour;
+color midStripe;
+float colourAmt = 0.5;
+
+Petal petal[];
+
+
+
+float amtChange = 0.01;
+float changeTime = 250.0; // ms between transitions
+
+// working
+float amt = 0.5;
+long lastChange; 
+
+
+
+PVector innerPetal;
+PVector outerPetal;
+PVector midpoint1;
+PVector midpoint2;
+PVector centreScreen;
+
+// Petal[] petal = new Petal[totalPetals];
+
+
+void setup() {
+  size(400, 400); 
+  centreX = width / 2;
+  centreY = height / 2;
+  innerPetal = new PVector(0, 0);
+  outerPetal = new PVector(0, 0);
+  midpoint1 = new PVector(0, 0);
+  midpoint2 = new PVector(0, 0);
+  centreScreen = new PVector (centreX, centreY);
+  colorMode(HSB);
+  ellipseMode(CENTER);
+
+  petal = new Petal[petals];
+  for (int i = 0; i < petals; i ++) {
+    petal[i] = new Petal(i, angleBetweenPetals, startAngle, LIGHT_GREEN, petalInnerRadius, petalOuterRadius, latPetalMid1, latPetalMid2, radPetalMid1, radPetalMid2, spiral);
+  }
+}
+
+void draw() {
+  background(0);
+  translate(centreX, centreY);
+  for (int i = 0; i < petals; i ++) {
+    petal[i].updateAngle();
+    petal[i].display();
+  }
+//  startAngle += 0.0002;
+  if (startAngle > TWO_PI) {
+    startAngle -= TWO_PI;
+  }
+  // Petal (int _num, float _petalAng, color _col1, int _intRad, int _extRad, PVector _centre, float _ang1, float _ang2, float _rad1, float _rad2, float _spiralIn) {
+}
+
+
+class Petal {
+  int petalNumber; 
+  PVector centre; 
+  float initAngle;
+  float petalAngle; // as 0-1 for 360 deg, angle between petals
+  float midAngle; // midline for each petal
+  int intRadius, extRadius; 
+  PVector ccwSide; // counter clockwise ie side of - radians
+  PVector cwSide; 
+  float numberOfPetals; // per revolution
+  float maxRows; // number of rows of petals default is 1
+  float spiralIn; // amount petal radius retreats towards centre per revoluution as ratio ie 1 no change default = 1
+  float angleMid1, angleMid2, radMid1, radMid2; // for bezier curves
+  color petalColour; 
+  float petalsPerRow; 
+
+  Petal (int _num, float _petalAng, float _initAng, color _col1, int _intRad, int _extRad, float _ang1, float _ang2, float _rad1, float _rad2, float _spiralIn) {
+    petalNumber = _num;  
+    petalAngle = _petalAng; 
+    initAngle = _initAng;
+    intRadius = _intRad; 
+    extRadius = _extRad; 
+    petalColour = _col1; 
+    midStripe = petalColour; 
+    numberOfPetals = _num; 
+    angleMid1 = _ang1; 
+    angleMid2 = _ang2; 
+    radMid1 = _rad1; 
+    radMid2 = _rad2; 
+    spiralIn = _spiralIn; 
+
+    //   println(midAngle);
+  }
+  void updateAngle() {
+    initAngle += startAngle;
+  }
+  void display() {
+//    println(petalNumber);
+//     println(midAngle);
+    midAngle = initAngle + (petalNumber * petalAngle); 
+    while (midAngle > TWO_PI) {
+      midAngle -= TWO_PI;
+    }
+    fill(petalColour); 
+ //   translate(centre.x, centre.y); 
+    stroke(0); 
+    strokeWeight(1); 
+
+    innerPetal.set(int(intRadius * cos(midAngle)), int(intRadius * sin(midAngle))); 
+    outerPetal.set(int(extRadius * pow(spiralIn, petalNumber) * cos(midAngle)), int(extRadius * pow(spiralIn, petalNumber) * sin(midAngle))); 
+//    ellipse(innerPetal.x, innerPetal.y, 2, 2); 
+//    ellipse(outerPetal.x, outerPetal.y, 2, 2);
+
+    midpoint1.set(lerp(intRadius, extRadius, radMid1) * cos(midAngle + (petalAngle * angleMid1)), lerp(intRadius, extRadius, radMid1) * sin(midAngle + (petalAngle * angleMid1))); 
+    midpoint2.set(lerp(intRadius, extRadius, radMid2) * cos(midAngle + (petalAngle * angleMid2)), lerp(intRadius, extRadius, radMid2) * sin(midAngle + (petalAngle * angleMid2))); 
+    bezier(innerPetal.x, innerPetal.y, midpoint1.x, midpoint1.y, midpoint2.x, midpoint2.y, outerPetal.x, outerPetal.y); 
+
+    midpoint1.set(lerp(intRadius, extRadius, radMid1) * cos(midAngle - (petalAngle * angleMid1)), lerp(intRadius, extRadius, radMid1) * sin(midAngle - (petalAngle * angleMid1))); 
+    midpoint2.set(lerp(intRadius, extRadius, radMid2) * cos(midAngle - (petalAngle * angleMid2)), lerp(intRadius, extRadius, radMid2) * sin(midAngle - (petalAngle * angleMid2))); 
+    bezier(innerPetal.x, innerPetal.y, midpoint1.x, midpoint1.y, midpoint2.x, midpoint2.y, outerPetal.x, outerPetal.y); 
+
+    strokeWeight(2); 
+    stroke(midStripe); 
+    line(innerPetal.x, innerPetal.y, outerPetal.x, outerPetal.y); // fills central gap - can change colour for interesting effects
+  }
+}
+
+
+
+
+/*
+void draw() {
+ 
+ background(0);
+ translate(centreX, centreY);
+ stroke(0);
+ 
+ fill(255);
+ for (float i = 0.0; i < PETALS; i ++) {
+ currentColour = lerpColor(from, to, (i / PETALS * 1.00));
+ midStripe = currentColour;
+ fill(currentColour);
+ stroke(0);
+ strokeWeight(1);
+ innerPetal.set(int(petalInnerRadius * cos(petalAngle * i)), int(petalInnerRadius * sin(petalAngle * i)));
+ outerPetal.set(int(petalOuterRadius * cos(petalAngle * i)), int(petalOuterRadius * sin(petalAngle * i)));
+ 
+ midpoint1.set(lerp(petalInnerRadius, petalOuterRadius, radPetalMid1) * cos(petalAngle * (i + latPetalMid1)), lerp(petalInnerRadius, petalOuterRadius, radPetalMid1) * sin(petalAngle * (i + latPetalMid1)));
+ midpoint2.set(lerp(petalInnerRadius, petalOuterRadius, radPetalMid2) * cos(petalAngle * (i + latPetalMid2)), lerp(petalInnerRadius, petalOuterRadius, radPetalMid2) * sin(petalAngle * (i + latPetalMid2)));
+ 
+ //   ellipse(innerPetal.x, innerPetal.y, 2, 2); 
+ //   ellipse(outerPetal.x, outerPetal.y, 2, 2);
+ bezier(innerPetal.x, innerPetal.y, midpoint1.x, midpoint1.y, midpoint2.x, midpoint2.y, outerPetal.x, outerPetal.y);
+ 
+ midpoint1.set(lerp(petalInnerRadius, petalOuterRadius, radPetalMid1) * cos(petalAngle * (i - latPetalMid1)), lerp(petalInnerRadius, petalOuterRadius, radPetalMid1) * sin(petalAngle * (i - latPetalMid1)));
+ midpoint2.set(lerp(petalInnerRadius, petalOuterRadius, radPetalMid2) * cos(petalAngle * (i - latPetalMid2)), lerp(petalInnerRadius, petalOuterRadius, radPetalMid2) * sin(petalAngle * (i - latPetalMid2)));
+ bezier(innerPetal.x, innerPetal.y, midpoint1.x, midpoint1.y, midpoint2.x, midpoint2.y, outerPetal.x, outerPetal.y);
+ strokeWeight(3);
+ stroke(currentColour);
+ line(innerPetal.x, innerPetal.y, outerPetal.x, outerPetal.y); // fills central gap - can change colour for interesting effects
+ }
+ 
+ stroke(0);
+ strokeWeight(1);
+ currentColour = lerpColor(from, to, 0.00);
+ fill(currentColour);
+ innerPetal.set(int(petalInnerRadius * cos(petalAngle * PETALS)), int(petalInnerRadius * sin(petalAngle * PETALS)));
+ outerPetal.set(int(petalOuterRadius * cos(petalAngle * PETALS)), int(petalOuterRadius * sin(petalAngle * PETALS)));
+ midpoint1.set(lerp(petalInnerRadius, petalOuterRadius, radPetalMid1) * cos(petalAngle * (PETALS - latPetalMid1)), lerp(petalInnerRadius, petalOuterRadius, radPetalMid1) * sin(petalAngle * (PETALS - latPetalMid1)));
+ midpoint2.set(lerp(petalInnerRadius, petalOuterRadius, radPetalMid2) * cos(petalAngle * (PETALS - latPetalMid2)), lerp(petalInnerRadius, petalOuterRadius, radPetalMid2) * sin(petalAngle * (PETALS - latPetalMid2)));
+ bezier(innerPetal.x, innerPetal.y, midpoint1.x, midpoint1.y, midpoint2.x, midpoint2.y, outerPetal.x, outerPetal.y);//
+ 
+ 
+ //  fill(255);
+ // ellipse(0, 0, petalOuterRadius, petalOuterRadius);
+ //  fill(LIGHT_GREEN);
+ // ellipse(0, 0, petalInnerRadius, petalInnerRadius);
+ //  amt = lerp(0, 1, (millis() - lastChange) / changeTime);
+ */
+
+/*
+  if (true) {
+ println(amt);
+ amt += amtChange;
+ if (millis() > (lastChange + changeTime)) {
+ //  amt += amtChange;
+ //    println(amt);
+ lastChange = millis();
+ 
+ if (amt >= 1 - amtChange) { // if next time it'll go over 1 or below 0
+ // PETALS += petalChange;
+ PETALS = int(random(2, 13));
+ petalAngle = TWO_PI / PETALS;
+ if (random(1) < 0.8) { // chance of it happening
+ radPetalMid1 = lerp(0, 3, random(1));  // amt);
+ }
+ if (random(1) < 0.4) { // chance of it happening
+ radPetalMid2 = lerp(0, 3, random(1));  // amt);
+ }
+ if (random(1) < 0.4) { // chance of it happening
+ latPetalMid1 = lerp(0, 3, random(1));  // amt);
+ }
+ if (random(1) < 0.6) { // chance of it happening
+ radPetalMid1 = lerp(0, 3, random(1));  // amt);
+ }
+ if (random(1) < 0.35) { // chance of it happening
+ petalInnerRadius = int(lerp(-50, 200, random(1))); //  amt));
+ }
+ if (random(1) < 0.65) { // chance of it happening
+ petalOuterRadius = int(lerp(100, 300, random(1))); // amt));
+ }
+ if (random(1) < 0.15) { // chance of it happening
+ from = color(int(random(255)), int(random(255)), int(random(255)));
+ }
+ if (random(1) < 0.65) { // chance of it happening
+ to = color(int(random(255)), int(random(255)), int(random(255)));
+ }
+ amtChange = - abs(amtChange);
+ }
+ if (amt <= amtChange) {
+ amtChange = abs(amtChange); // positive
+ }
+ if (PETALS > 20) {
+ petalChange = -1;
+ PETALS = 10;
+ }
+ if (PETALS < 3) {
+ petalChange = 1;
+ }
+ //   PETALS = int(random(3,15));
+ latPetalMid2 = lerp(0, -3, amt);
+ latPetalMid1 = lerp(3, 0, amt);
+ //   radPetalMid1 = lerp(0, 3, random(1));  // amt);
+ radPetalMid2 = lerp(0, 2, amt);
+ 
+ 
+ //  PETALS = int(lerp(5, 20, amt));
+ }
+ }
+ }
+ */
